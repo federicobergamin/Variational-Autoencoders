@@ -41,16 +41,16 @@ use_cuda = torch.cuda.is_available()
 print('Do we get access to a CUDA? - ', use_cuda)
 device = torch.device("cuda" if use_cuda else "cpu")
 BATCH_SIZE = 128
-HIDDEN_LAYERS = [400]
-Z_DIM = 5
+HIDDEN_LAYERS = [100]
+Z_DIM = 3
 
-N_EPOCHS = 20
+N_EPOCHS = 100
 LEARNING_RATE = 1e-3#3e-4
 WEIGHT_DECAY = -1
 
 N_SAMPLE = 64
 
-SAVE_MODEL_EPOCH = N_EPOCHS + 5
+SAVE_MODEL_EPOCH = N_EPOCHS - 5
 PATH = 'saved_models/'
 
 ## we have the binarized MNIST
@@ -194,7 +194,7 @@ for epoch in range(N_EPOCHS):
 
     if epoch + 1 > SAVE_MODEL_EPOCH:
         ## we have to store the model
-        torch.save(model.state_dict(), PATH + 'VAE_zdim_{}_epoch_{}_elbo_{}_learnrate_{}'.format(Z_DIM, epoch+1, tmp_elbo/ len(train_loader.dataset), LEARNING_RATE))
+        torch.save(model.state_dict(), PATH + 'VAE_zdim_{}_epoch_{}_elbo_{}_learnrate_{}_Andrea'.format(Z_DIM, epoch+1, tmp_elbo/ len(train_loader.dataset), LEARNING_RATE))
 
 
 print('....Training ended')

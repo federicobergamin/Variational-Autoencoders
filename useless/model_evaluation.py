@@ -7,7 +7,7 @@
 
 
 '''
-od not use
+old not use
 
 '''
 import math
@@ -41,14 +41,14 @@ use_cuda = torch.cuda.is_available()
 print('Do we get access to a CUDA? - ', use_cuda)
 device = torch.device("cuda" if use_cuda else "cpu")
 
-HIDDEN_LAYERS = [400]
-Z_DIM = 5
+HIDDEN_LAYERS = [100]
+Z_DIM = 3
 BATCH_SIZE = 128
 
 
 N_SAMPLE = 64
 
-PATH = 'saved_models/VAE_zdim_5_epoch_50_elbo_119.56782194010417_learnrate_0.001'
+PATH = 'VAE_personal_implementation/saved_models/VAE_zdim_3_epoch_100_elbo_-137-1356429361979_learnrate_0-001_Andrea'
 
 ## we have the binarized MNIST
 ## in this case we look at the test set, since we are interested in these examples that
