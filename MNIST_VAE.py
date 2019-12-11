@@ -28,9 +28,8 @@ def show_image(img, title = "", path = None):
         plt.savefig(path)
     plt.show()
 
-# We use this custom BCE function until PyTorch implements reduce=False
-def binary_cross_entropy(r, x):
-    return -torch.sum(x * torch.log(r + 1e-8) + (1 - x) * torch.log(1 - r + 1e-8), dim=-1)
+# def binary_cross_entropy(r, x):
+#     return -torch.sum(x * torch.log(r + 1e-8) + (1 - x) * torch.log(1 - r + 1e-8), dim=-1)
 
 # Writer will output to ./runs/ directory by default
 writer = SummaryWriter()
