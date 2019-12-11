@@ -3,17 +3,14 @@ We are going to learn a latent space and a generative model for the MNIST datase
 
 '''
 
-import math
 import numpy as np
 import torch
 import torch.utils
 import torch.utils.data
 from torch.utils.tensorboard import SummaryWriter
 import torchvision
-from torch import nn
 import torch.nn.functional as F
 from torchvision import datasets, transforms, utils
-from torch.autograd import Variable
 from VAE_personal_implementation.VAE import VariationalAutoencoder
 from sklearn.decomposition import PCA
 from VAE_personal_implementation.utils.code_to_load_the_dataset import load_MNIST_dataset
@@ -37,54 +34,58 @@ def binary_cross_entropy(r, x):
 
 # Writer will output to ./runs/ directory by default
 writer = SummaryWriter()
-
+ORIGINAL_BINARIZED_MNIST = True
 use_cuda = torch.cuda.is_available()
 print('Do we get access to a CUDA? - ', use_cuda)
 device = torch.device("cuda" if use_cuda else "cpu")
 BATCH_SIZE = 64
-HIDDEN_LAYERS = [400]
-Z_DIM = 16
+HIDDEN_LAYERS = [100]
+Z_DIM = 3
 
 N_EPOCHS = 200
-LEARNING_RATE = 1e-3#3e-4
+LEARNING_RATE = 3e-4#1e-3#3e-4
 WEIGHT_DECAY = -1
 
 N_SAMPLE = 64
 
-SAVE_MODEL_EPOCH = N_EPOCHS + 5
+SAVE_MODEL_EPOCH = N_EPOCHS - 5
 PATH = 'saved_models/'
 
-## we have the binarized MNIST
-# ## TRAIN SET
-# training_set = datasets.MNIST('../MNIST_dataset', train=True, download=True,
-#                    transform=transforms.ToTensor())
-# print('Number of examples in the training set:', len(training_set))
-# print('Size of the image:', training_set[0][0].shape)
-# ## we plot an example only to check it
-# idx_ex = 1000
-# x, y = training_set[idx_ex] # x is now a torch.Tensor
-# plt.imshow(x.numpy()[0], cmap='gray')
-# plt.title('Example n {}, label: {}'.format(idx_ex, y))
-# plt.show()
-#
-# ### we only check if it is binarized
-# input_dim = x.numpy().size
-# print('Size of the image:', input_dim)
-#
-# flatten_bernoulli = lambda x: transforms.ToTensor()(x).view(-1).bernoulli()
-#
-# train_loader = torch.utils.data.DataLoader(
-#     datasets.MNIST('../MNIST_dataset', train=True, transform=flatten_bernoulli),
-#     batch_size=BATCH_SIZE, shuffle=True)
-#
-# ## TEST SET
-# test_loader = torch.utils.data.DataLoader(
-#     datasets.MNIST('../MNIST_dataset', train=False, transform=flatten_bernoulli),
-# batch_size=BATCH_SIZE, shuffle=True)
+
+if ORIGINAL_BINARIZED_MNIST:
+    ## we load the original dataset by Larochelle
+    train_loader, val_loader, test_loader = load_MNIST_dataset('Original_MNIST_binarized/', BATCH_SIZE, True, True,
+                                                               True)
+else:
+    # we have the binarized MNIST
+    ## TRAIN SET
+    training_set = datasets.MNIST('../MNIST_dataset', train=True, download=True,
+                       transform=transforms.ToTensor())
+    print('Number of examples in the training set:', len(training_set))
+    print('Size of the image:', training_set[0][0].shape)
+    ## we plot an example only to check it
+    idx_ex = 1000
+    x, y = training_set[idx_ex] # x is now a torch.Tensor
+    plt.imshow(x.numpy()[0], cmap='gray')
+    plt.title('Example n {}, label: {}'.format(idx_ex, y))
+    plt.show()
+
+    ### we only check if it is binarized
+    input_dim = x.numpy().size
+    print('Size of the image:', input_dim)
+
+    flatten_bernoulli = lambda x: transforms.ToTensor()(x).view(-1).bernoulli()
+
+    train_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../MNIST_dataset', train=True, transform=flatten_bernoulli),
+        batch_size=BATCH_SIZE, shuffle=True)
+
+    ## TEST SET
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../MNIST_dataset', train=False, transform=flatten_bernoulli),
+    batch_size=BATCH_SIZE, shuffle=True)
 
 
-## we load the original dataset by Larochelle
-train_loader, val_loader, test_loader = load_MNIST_dataset('Original_MNIST_binarized/', BATCH_SIZE, True, True, True)
 
 ## another way to plot some images from the dataset
 # dataiter = iter(train_loader)
@@ -122,7 +123,10 @@ for epoch in range(N_EPOCHS):
         n_batch += 1
         # images, labels = data
         # images = images.to(device)
-        images = data
+        if ORIGINAL_BINARIZED_MNIST:
+            images = data
+        else:
+            images, labels = data
         images = images.to(device)
 
         reconstruction = model(images)
@@ -166,7 +170,10 @@ for epoch in range(N_EPOCHS):
         for r, data in enumerate(test_loader, 0):
             # images, labels = data
             # images = images.to(device)
-            images = data
+            if ORIGINAL_BINARIZED_MNIST:
+                images = data
+            else:
+                images, labels = data
             images = images.to(device)
             reconstruction = model(images)
             # print(conditional_reconstruction.shape)
@@ -225,7 +232,10 @@ with torch.no_grad():
     for i, data in enumerate(test_loader, 0):
         # images, labels = data
         # images = images.to(device)
-        images = data
+        if ORIGINAL_BINARIZED_MNIST:
+            images = data
+        else:
+            images, labels = data
         images = images.to(device)
         reconstruction = model(images)
         # print(conditional_reconstruction.shape)
@@ -245,65 +255,66 @@ with torch.no_grad():
 
 ## at this point I want to take the test set and compute the latent code
 ## for each example and then run PCA or TSNE and plot it
-latent_representation = []
-all_labels = []
-with torch.no_grad():
-    for i, data in enumerate(test_loader, 0):
-        images, labels = data
-        labels = labels.numpy()
-        images = images.to(device)
-        for k in range(len(images)):
-            latent_repr, _, _ = model.encoder(images[k])
-            latent_representation.append(latent_repr.numpy())
-            all_labels.append(labels[k])
+if not ORIGINAL_BINARIZED_MNIST:
+    latent_representation = []
+    all_labels = []
+    with torch.no_grad():
+        for i, data in enumerate(test_loader, 0):
+            images, labels = data
+            labels = labels.numpy()
+            images = images.to(device)
+            for k in range(len(images)):
+                latent_repr, _, _ = model.encoder(images[k])
+                latent_representation.append(latent_repr.numpy())
+                all_labels.append(labels[k])
 
-    # at this point the two sets contain what we want
-    # we can do PCA and plot the 2 components results
-    latent_representation = np.array(latent_representation)
-    print(latent_representation.shape)
-    pca = PCA(2)
-    pca.fit(latent_representation)
-    feat = pca.fit_transform(latent_representation)
-    features_pca = np.array(feat)
-    print(features_pca.shape)
+        # at this point the two sets contain what we want
+        # we can do PCA and plot the 2 components results
+        latent_representation = np.array(latent_representation)
+        print(latent_representation.shape)
+        pca = PCA(2)
+        pca.fit(latent_representation)
+        feat = pca.fit_transform(latent_representation)
+        features_pca = np.array(feat)
+        print(features_pca.shape)
 
-    colors = ['#0165fc', '#02ab2e', '#fdaa48', '#fffe7a', '#6a79f7', '#db4bda', '#0ffef9', '#bd6c48', '#fea993', '#1e9167']
+        colors = ['#0165fc', '#02ab2e', '#fdaa48', '#fffe7a', '#6a79f7', '#db4bda', '#0ffef9', '#bd6c48', '#fea993', '#1e9167']
 
-    COLORS = ["#0072BD",
-              "#D95319",
-              "#006450",
-              "#7E2F8E",
-              "#77AC30",
-              "#EDB120",
-              "#4DBEEE",
-              "#A2142F",
-              "#191970",
-              "#A0522D"]
+        COLORS = ["#0072BD",
+                  "#D95319",
+                  "#006450",
+                  "#7E2F8E",
+                  "#77AC30",
+                  "#EDB120",
+                  "#4DBEEE",
+                  "#A2142F",
+                  "#191970",
+                  "#A0522D"]
 
-    # print(all_labels)
-    all_labels = np.array(all_labels)
-    fig = plt.figure()
-    for i in range(10):
-        idxs = np.where(all_labels == i)
-        # print(idxs)
-        plt.scatter(features_pca[idxs,0], features_pca[idxs,1], c = colors[i], label = i)
+        # print(all_labels)
+        all_labels = np.array(all_labels)
+        fig = plt.figure()
+        for i in range(10):
+            idxs = np.where(all_labels == i)
+            # print(idxs)
+            plt.scatter(features_pca[idxs,0], features_pca[idxs,1], c = colors[i], label = i)
 
-    # plt.scatter(features_pca[:,0], features_pca[:,1], c = all_labels)
-    plt.title('PCA on the latent dimension')
-    plt.legend()
-    plt.savefig('PCA/PCA_latent_repr_layer_nlatent_{}'.format(Z_DIM))
-    plt.show()
+        # plt.scatter(features_pca[:,0], features_pca[:,1], c = all_labels)
+        plt.title('PCA on the latent dimension')
+        plt.legend()
+        plt.savefig('PCA/PCA_latent_repr_layer_nlatent_{}'.format(Z_DIM))
+        plt.show()
 
 
-    ## now we want also to try to sample from the decoder
-    ## RANDOM SAMLING
-    # Z IS RANDOM N(0,1)
-    # mus = torch.zeros((BATCH_SIZE,Z_DIM))
-    # stds = torch.zeros((BATCH_SIZE, Z_DIM))
-    # eps = torch.randn((BATCH_SIZE, Z_DIsM))
-    # random_z = mus.addcmul(stds, eps)
-    for i in range(5):
-        # random_latent = torch.randn((N_SAMPLE, Z_DIM), dtype = torch.float).to(device)
-        images_from_random = model.sample(N_SAMPLE)
-        sampled_ima = images_from_random.view(images_from_random.shape[0], 1, 28, 28)
-        show_images(sampled_ima, 'Random sampled imagess', 'random_samples/Random_samples_ex_{}'.format(i+1))
+## now we want also to try to sample from the decoder
+## RANDOM SAMLING
+# Z IS RANDOM N(0,1)
+# mus = torch.zeros((BATCH_SIZE,Z_DIM))
+# stds = torch.zeros((BATCH_SIZE, Z_DIM))
+# eps = torch.randn((BATCH_SIZE, Z_DIsM))
+# random_z = mus.addcmul(stds, eps)
+for i in range(5):
+    # random_latent = torch.randn((N_SAMPLE, Z_DIM), dtype = torch.float).to(device)
+    images_from_random = model.sample(N_SAMPLE)
+    sampled_ima = images_from_random.view(images_from_random.shape[0], 1, 28, 28)
+    show_images(sampled_ima, 'Random sampled imagess', 'random_samples/Random_samples_ex_{}'.format(i+1))

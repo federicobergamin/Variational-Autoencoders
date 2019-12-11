@@ -1,0 +1,10 @@
+.idea/
+.DS_Store
+__pycache__/
+Original_MNIST_binarized/
+PCA/
+random_samples/
+reconstruction_during_training/
+runs/
+samples_during_training/
+saved_models/
