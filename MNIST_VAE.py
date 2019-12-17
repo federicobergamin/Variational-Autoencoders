@@ -38,8 +38,8 @@ use_cuda = torch.cuda.is_available()
 print('Do we get access to a CUDA? - ', use_cuda)
 device = torch.device("cuda" if use_cuda else "cpu")
 BATCH_SIZE = 64
-HIDDEN_LAYERS = [100]
-Z_DIM = 3
+HIDDEN_LAYERS = [256,128]
+Z_DIM = 12
 
 N_EPOCHS = 200
 LEARNING_RATE = 3e-4#1e-3#3e-4
@@ -192,10 +192,10 @@ for epoch in range(N_EPOCHS):
                 recon_image_ = utils.make_grid(recon_image_)
                 plt.imshow(images[0], cmap='gray')
                 plt.title('Original from epoch {}'.format(epoch + 1))
-                plt.savefig('reconstruction_during_training/originals_epoch_{}_example_{}'.format(epoch + 1, r))
+                plt.savefig('reconstruction_during_training/originals_epoch_{}_example_{}_12zdim'.format(epoch + 1, r))
                 plt.imshow(recon_image_[0], cmap='gray')
                 plt.title('Reconstruction from epoch {}'.format(epoch + 1))
-                plt.savefig('reconstruction_during_training/reconstruction_epoch_{}_example_{}'.format(epoch + 1, r))
+                plt.savefig('reconstruction_during_training/reconstruction_epoch_{}_example_{}_12zdim'.format(epoch + 1, r))
 
         ## we want also to sample something from the model during training
         rendom_samples = model.sample(N_SAMPLE)
@@ -203,7 +203,7 @@ for epoch in range(N_EPOCHS):
         samples = utils.make_grid(samples)
         plt.imshow(samples[0], cmap='gray')
         plt.title('Samples from epoch {}'.format(epoch + 1))
-        plt.savefig('samples_during_training/samples_epoch_{}'.format(epoch + 1))
+        plt.savefig('samples_during_training/samples_epoch_{}_12zdim'.format(epoch + 1))
 
 
 
@@ -211,7 +211,7 @@ for epoch in range(N_EPOCHS):
 
     if epoch + 1 > SAVE_MODEL_EPOCH:
         ## we have to store the model
-        torch.save(model.state_dict(), PATH + 'VAE_zdim_{}_epoch_{}_elbo_{}_learnrate_{}_Andrea'.format(Z_DIM, epoch+1, tmp_elbo/ len(train_loader.dataset), LEARNING_RATE))
+        torch.save(model.state_dict(), PATH + 'VAE_zdim_{}_epoch_{}_elbo_{}_learnrate_{}'.format(Z_DIM, epoch+1, tmp_elbo/ len(train_loader.dataset), LEARNING_RATE))
 
 
 print('....Training ended')
@@ -247,10 +247,10 @@ with torch.no_grad():
             recon_image_ = utils.make_grid(recon_image_)
             plt.imshow(images[0], cmap='gray')
             plt.title('Original')
-            plt.savefig('reconstruction_during_training/originals_example_{}'.format(i))
+            plt.savefig('reconstruction_during_training/originals_example_{}_12zdim'.format(i))
             plt.imshow(recon_image_[0], cmap='gray')
             plt.title('Reconstruction')
-            plt.savefig('reconstruction_during_training/reconstruction_example_{}'.format(i))
+            plt.savefig('reconstruction_during_training/reconstruction_example_{}_12zdim'.format(i))
 
 ## at this point I want to take the test set and compute the latent code
 ## for each example and then run PCA or TSNE and plot it
@@ -312,8 +312,9 @@ if not ORIGINAL_BINARIZED_MNIST:
 # stds = torch.zeros((BATCH_SIZE, Z_DIM))
 # eps = torch.randn((BATCH_SIZE, Z_DIsM))
 # random_z = mus.addcmul(stds, eps)
-for i in range(5):
-    # random_latent = torch.randn((N_SAMPLE, Z_DIM), dtype = torch.float).to(device)
-    images_from_random = model.sample(N_SAMPLE)
-    sampled_ima = images_from_random.view(images_from_random.shape[0], 1, 28, 28)
-    show_images(sampled_ima, 'Random sampled imagess', 'random_samples/Random_samples_ex_{}'.format(i+1))
+with torch.no_grad():
+    for i in range(5):
+        # random_latent = torch.randn((N_SAMPLE, Z_DIM), dtype = torch.float).to(device)
+        images_from_random = model.sample(N_SAMPLE)
+        sampled_ima = images_from_random.view(images_from_random.shape[0], 1, 28, 28)
+        show_images(sampled_ima, 'Random sampled imagess', 'random_samples/Random_samples_ex_{}_12zdim'.format(i+1))
