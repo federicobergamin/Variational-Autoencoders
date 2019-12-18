@@ -33,7 +33,7 @@ def log_gaussian(x, mu, log_var):
     :param x: point to evaluate
     :param mu: mean of distribution
     :param log_var: log variance of distribution
-    :return: log N(x|µ,σ)
+    :return: log N(x|mu,var)
     """
     log_pdf = - 0.5 * math.log(2 * math.pi) - log_var / 2 - (x - mu)**2 / (2 * torch.exp(log_var))
     # print('Size log_pdf:', log_pdf.shape)
@@ -228,7 +228,7 @@ class VariationalAutoencoder(nn.Module):
         Given an input, we want to run the encoder, compute the kl, and reconstruct it
 
         :param input: an input example
-        :return: the reconstructed input
+        :return: for each pixel it returns the mean of the distribution of the values of that pixel
         '''
 
         # we pass the input through the encoder
